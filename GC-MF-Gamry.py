@@ -143,6 +143,7 @@ os.mkdir('Results/EIS')
 os.mkdir('Results/CV')
 os.mkdir('Results/CV_iR')
 os.mkdir('Results/CA')
+os.mkdir('Results/FE')
 
 "Plotting EIS data, creates UTvsU and UTvsI"
 fullEIS_fig, fullEIS_ax = plt.subplots()
@@ -372,40 +373,28 @@ for i in dGCB:
                 Uhyd.append(InjectionU)
  #           if 3.00 <= float(dGCB[i][1][k]) < 3.50:   
 
+     
+Names = ['Ethylene', 'Methanol', 'Carbon monoxide', 'Hydrogen']
 Potentials = [Ueth, Umet, Uco, Uhyd]
-
 FEs = [FEeth, FEmet, FEco, FEhyd]
-
-
+FEmax = []
 
 fullFE_fig, fullFE_ax = plt.subplots()
 
 for i, c in zip(range(len(Potentials)), sns.color_palette()):
     partFE_fig, partFE_ax = plt.subplots()
-    fullFE_ax.scatter(Potentials[i], FEs[i], color = c, s = 5, label = ('Product ' + str(i+1)))
-    partFE_ax.scatter(Potentials[i], FEs[i], color = c, s = 5)
-    partFE_ax.set_ylim([0,100])
+    FEmax.append(max(FEs[i]))
+    fullFE_ax.scatter(Potentials[i], FEs[i], color = c, s = 5, label = (Names[i]))
+    partFE_ax.scatter(Potentials[i], FEs[i], color = c, s = 10)
+    partFE_ax.set_ylim([0,float((max(FEs[i]))*1.10)])
     partFE_ax.set_xlim([-2.2, -1])
     partFE_ax.set_xlabel('Potential vs Ag/AgCl [U]')
     partFE_ax.set_ylabel('Faradaic efficiency [%]')
-fullFE_ax.set_ylim([0,100])
-
-
-
-
-              
-print('CO')
-print(FEco)
-print(Uco)
-
-print('hyd')
-print(FEhyd)
-print(Uhyd)
-
-print('Ethylene')
-print(FEeth)
-print(Ueth)
-
-print('Methanol')
-print(FEmet)
-print(Umet)
+    partFE_ax.set_title(Names[i])
+    partFE_fig.savefig('Results/FE/' + str(Names[i]) + '.png')        
+fullFE_ax.set_ylim([0,max(FEmax)*1.10])
+fullFE_ax.set_xlabel('Potential vs Ag/AgCl [U]')
+fullFE_ax.set_ylabel('Faradaic efficiency [%]')
+fullFE_ax.legend(fontsize = 'small')
+fullFE_ax.set_title('All faradaic efficiencies')
+fullFE_fig.savefig('Results/FE/All FE´s.png')
