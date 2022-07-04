@@ -136,7 +136,6 @@ This means we got all the data ready to be called upon with a simple dEIS.values
 
 
 
-
 # ---------------------------------------------------------------------------------------------
 "Creating Results directories"
 os.mkdir('Results')
@@ -145,7 +144,7 @@ os.mkdir('Results/CV')
 os.mkdir('Results/CV_iR')
 os.mkdir('Results/CA')
 
-"Plotting EIS data"
+"Plotting EIS data, creates UTvsU and UTvsI"
 fullEIS_fig, fullEIS_ax = plt.subplots()
 dEIS_UTvsI = {}
 for i, c in zip(range(len(dEIS)), sns.color_palette()):
@@ -208,26 +207,33 @@ fullCV_fig.savefig('Results/CV/Combined CV´s.png')
 fullCViR_fig, fullCViR_ax = plt.subplots()
 dCV_UTvsI = {}
 dCV_UTvsU = {}
-for i, c in zip(range(len(dCV)), sns.color_palette()):
+for i, c in zip(range(len(dCV)), sns.color_palette()):    
     partCViR_fig, partCViR_ax = plt.subplots()
-    y = []
-    x = []
+    CVcurrent = []
+    CVpotential = []
+    CVtime = []
     x1 = list(dCV.values())[i][3]
     y1 = list(dCV.values())[i][4]
+    z1 = list(dCV.values())[i][2]
     name = str(list(dCV)[i]).replace('.dta', '')
     name = str(name.replace('point', '.'))
     R = 0
-    a1 = list(tEIS.values())[i]
-    if list(tCV.values())[i] - a1 <= 600: #If EIS was done atleast 10min before CV, compensate for resistance, else not
+    CVstarttime = list(tEIS.values())[i]
+    if list(tCV.values())[i] - CVstarttime <= 600: #If EIS was done atleast 10min before CV, compensate for resistance, else not
         R = list(dEIS.values())[i][4][list(dEIS.values())[i][5].index(max(list(dEIS.values())[i][5]))]                       
     for i in range(len(x1)):
         if x1[i] != 0:
-            x.append(x1[i])
-            y.append(y1[i])
-    for i in range(len(x)):
-        x[i] = x[i] - y[i] * R        
-    fullCViR_ax.scatter(x,y, color = c, s = 0.01, label = str(name))    
-    partCViR_ax.scatter(x,y, color = c, s = 0.1)    
+            CVpotential.append(x1[i])
+            CVcurrent.append(y1[i])
+            CVtime.append(z1[i])
+    for i in range(len(CVpotential)):
+        CVpotential[i] = CVpotential[i] - CVcurrent[i] * R           
+    for ii in range(len(CVpotential)):
+        CVtime[ii] = CVtime[ii] + CVstarttime
+        dCV_UTvsI[CVtime[ii]] = CVcurrent[ii]
+        dCV_UTvsU[CVtime[ii]] = CVpotential[ii]
+    fullCViR_ax.scatter(CVpotential,CVcurrent, color = c, s = 0.01, label = str(name))    
+    partCViR_ax.scatter(CVpotential,CVcurrent, color = c, s = 0.1)    
     partCViR_ax.set_xlabel('U vs. Ag/AgCl [V]')
     partCViR_ax.set_ylabel('I [A]')    
     partCViR_ax.set_title(name)
@@ -245,21 +251,31 @@ fullCViR_fig.savefig('Results/CV_iR/Combined CV´s.png')
 fullCA_fig, fullCA_ax = plt.subplots()
 amin = []
 amax = []
+dCA_UTvsI = {}
+dCA_UTvsU = {}
 for i, c in zip(range(len(dCA)), sns.color_palette()):
-    partCA_fig, partCA_ax = plt.subplots()
-    x = list(dCA.values())[i][2]
-    y = list(dCA.values())[i][4]
+    partCA_fig, partCA_ax = plt.subplots()    
+    CAcurrent = list(dCA.values())[i][4] 
+    CAtime = list(dCA.values())[i][2]
     name = str(list(dCA)[i]).replace('.dta', '')
-    name = str(name.replace('point', '.'))
-    fullCA_ax.scatter(x[5:],y[5:], color = c, s = 3, label = str(name))    
-    partCA_ax.scatter(x[5:],y[5:], color = c, s = 2)
-    partCA_ax.set_ylim([max(y[5:])*0.90,min(y[5:]) *1.10]) 
-    amin.append(min(y[5:]))
-    amax.append(max(y[5:]))
+    name = str(name.replace('point', '.'))    
+    fullCA_ax.scatter(CAtime[5:],CAcurrent[5:], color = c, s = 3, label = str(name))    
+    partCA_ax.scatter(CAtime[5:],CAcurrent[5:], color = c, s = 2)
+    partCA_ax.set_ylim([max(CAcurrent[5:])*0.90,min(CAcurrent[5:]) *1.10]) 
+    amin.append(min(CAcurrent[5:]))
+    amax.append(max(CAcurrent[5:]))
     partCA_ax.set_xlabel('Time [s]')
     partCA_ax.set_ylabel('Current [A]')    
     partCA_ax.set_title(name)
     partCA_fig.savefig('Results/CA/' + str(name) + '.png')
+    
+    CAstarttime = list(tCA.values())[i]
+    CApotential = list(dCA.values())[i][3]
+    CAunivtime = list(dCA.values())[i][2]
+    for ii in range(len(CAcurrent)):
+        CAunivtime[ii] = CAunivtime[ii] + CAstarttime
+        dCA_UTvsI[CAunivtime[ii]] = CAcurrent[ii]
+        dCA_UTvsU[CAunivtime[ii]] = CApotential[ii]    
 fullCA_ax.set_ylim((max(amax))*0.90, min(amin)*1.1)
 fullCA_ax.legend(fontsize = 'small')
 fullCA_ax.set_xlabel('Time [s]')
@@ -267,41 +283,27 @@ fullCA_ax.set_ylabel('Current [A]')
 fullCA_ax.set_title("All CA signals")
 fullCA_fig.savefig('Results/CA/Combined CA´s.png')
 
-#----------------------------------------------------------------------------------------
-"""          
+
+  
 "Links MF flow to universal time"
-UnivMF = {}
+dMF_UTvsF = {}
 for i in range(len(tMF)):
     MFflow = list(dMF.values())[i][1]
-    
+
     MFstarttime = float(list(tMF.values())[i])
     
-    MFtime = list(dMF.values())[i][0]                               
+    MFtime = list(dMF.values())[i][0]
+                                    
     for k in range(len(MFtime)):
         MFtime[k] = round((MFtime[k] + MFstarttime), 0)
-    
-for i in range(len(MFtime)):
-    UnivMF[MFtime[i]] = MFflow[i]                   
-    
-print(dCA)    
-    
-UnivCA = {}
-for i in range(len(tCA)):
-    print(i)
-    CAcurrent = list(dCA.values())[i][4]
-    print(CAcurrent)
-    
-    CAstarttime = float(list(tCA.values())[i])
-    
-    CAtime = list(dCA.values())[i][2]
-    for k in range(len(CAtime)):
-        CAtime[k] = round((CAtime[k] + CAstarttime),0)
-        
-    print(CAtime)
-"""
-"""
+        dMF_UTvsF[MFtime[k]] = MFflow[k]
+
+
+
+"Gas chromatography"
 F = 96485
-GF1 = 1.2  # gas flow factor for Ar -------------------- CHANGE  TO 1 IF USING CO2
+#GF1 = 1.2  # gas flow factor for Ar -------------------- CHANGE  TO 1 IF USING CO2
+GF1 = 1
 
 nETH = 6     # number of electrons
 nMET = 10    # number of electrons
@@ -315,9 +317,95 @@ cCO  = 0.00069638       #calibration factor Carbon monoxide
 
 
 "GCA"
-a1 = []                 #4.75-5
-a2 = []                 #5.15 - 5.90
-a3 = []                 #9.85 - 10.40
-a4 = []                 #10.8 - 11.4
-a5 = []
-"""
+
+FEeth = []                 #5.15 - 5.90 ------Ethylene
+FEmet = []                #9.85 - 10.40-----Methane
+FEco = []                 #10.8 - 11.4 ----CO
+Ueth = []
+Umet = []
+Uco = []
+
+"GCB"
+
+FEhyd = []                 #1.30-1.50 ----- Hydrogen
+Uhyd = []                 #3.00 - 3.50---- Carbon dioxide
+
+
+
+
+
+for i in dGCA:
+    GCAstarttime = float(tGC[i] - 5)
+    if GCAstarttime in dCA_UTvsI and GCAstarttime in dMF_UTvsF:
+        InjectionI = dCA_UTvsI[GCAstarttime]
+        InjectionF = dMF_UTvsF[GCAstarttime]
+        InjectionU = round(dCA_UTvsU[GCAstarttime], 2)
+        
+        for k in range(len(dGCA[i][1])):                                                             
+            if 5.15 <= float(dGCA[i][1][k]) < 5.90:                      #Ethylene
+                dGCA[i][2][k] = (((float(dGCA[i][2][k])  * ((InjectionI * InjectionF * GF1) / 60000)) * F * nETH) / (22.4 * 1000)) * cETH               
+                FEeth.append(round(float((dGCA[i][2][k]) / InjectionI), 3))
+                Ueth.append(InjectionU)
+            
+            if 9.85 <= float(dGCA[i][1][k]) < 10.40:                     #Methanol
+                dGCA[i][2][k] = (((float(dGCA[i][2][k])  * ((InjectionI * InjectionF * GF1) / 60000)) * F * nMET) / (22.4 * 1000)) * cMET
+                FEmet.append(round(float((dGCA[i][2][k]) / InjectionI), 3))
+                Umet.append(InjectionU)
+                
+            if 10.8 <= float(dGCA[i][1][k]) < 11.4:                      #Carbon Monoxide
+                dGCA[i][2][k] = (((float(dGCA[i][2][k])  * ((InjectionI * InjectionF * GF1) / 60000)) * F * nCO) / (22.4 * 1000)) * cCO
+                FEco.append(round(float((dGCA[i][2][k]) / InjectionI), 3))
+                Uco.append(InjectionU)
+                
+
+for i in dGCB:
+    GCBstarttime = float(tGC[i] - 10)
+    if GCBstarttime in dCA_UTvsI and GCBstarttime in dMF_UTvsF:
+        InjectionI = dCA_UTvsI[GCBstarttime]
+        InjectionF = dMF_UTvsF[GCBstarttime]
+        InjectionU = round(dCA_UTvsU[GCBstarttime], 2)
+        
+        for k in range(len(dGCB[i][1])):                                                           
+            if 1.30 <= float(dGCB[i][1][k]) < 1.50:                      #Hydrogen
+                dGCB[i][2][k] = (((float(dGCB[i][2][k])  * ((InjectionI * InjectionF * GF1) / 60000)) * F * nHYD) / (22.4 * 1000)) * cHYD            
+                FEhyd.append(round((float(dGCB[i][2][k]) / InjectionI), 3))
+                Uhyd.append(InjectionU)
+ #           if 3.00 <= float(dGCB[i][1][k]) < 3.50:   
+
+Potentials = [Ueth, Umet, Uco, Uhyd]
+
+FEs = [FEeth, FEmet, FEco, FEhyd]
+
+
+
+fullFE_fig, fullFE_ax = plt.subplots()
+
+for i, c in zip(range(len(Potentials)), sns.color_palette()):
+    partFE_fig, partFE_ax = plt.subplots()
+    fullFE_ax.scatter(Potentials[i], FEs[i], color = c, s = 5, label = ('Product ' + str(i+1)))
+    partFE_ax.scatter(Potentials[i], FEs[i], color = c, s = 5)
+    partFE_ax.set_ylim([0,100])
+    partFE_ax.set_xlim([-2.2, -1])
+    partFE_ax.set_xlabel('Potential vs Ag/AgCl [U]')
+    partFE_ax.set_ylabel('Faradaic efficiency [%]')
+fullFE_ax.set_ylim([0,100])
+
+
+
+
+              
+print('CO')
+print(FEco)
+print(Uco)
+
+print('hyd')
+print(FEhyd)
+print(Uhyd)
+
+print('Ethylene')
+print(FEeth)
+print(Ueth)
+
+print('Methanol')
+print(FEmet)
+print(Umet)
