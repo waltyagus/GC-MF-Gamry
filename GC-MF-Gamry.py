@@ -20,11 +20,6 @@ dGCB =  {}
 
 
 
-
-
-
-
-
 for file in os.listdir():                           #Reads all data files, puts all data in disctionaries
     if file.endswith('.DTA'):
         with open(file, 'r') as f:
@@ -102,19 +97,17 @@ for file in os.listdir():                           #Reads all data files, puts 
                         dGCA['{}'.format(file)] = t  
  
                 
- 
-    
- 
 """                                                 #Comment regarding data dictionary shapes
 
 All the data is now stored in dictionaries that consist of these shapes:
 
-{Key : [[],[],[],[]]}    --> Values in dictionaries are arrays, each one parameter of one experiment
+{Key : [ [], [], [], [] ] }    --> Values in dictionaries are arrays, each one parameter of one experiment
 
 dXX (Data dictionary):
 
 dEIS =
-{'EISafter1point5.dta': [[], [0.0, 1.0], [3.0, 5.0], [1000078.0, 794390.6], [3.549097, 3.571528], [-1.12172, -0.978192], [1.0, 1.0], [3.722142, 3.703063], [-17.53955, -15.31691], [0.0020687, 0.0013807], [0.0037947, 0.0024488]], 
+{'EXAMPLE.dta':         [/]  [pt]        [time]      [Frequency]            [Zreal]               [Zimag]                ...     
+ 'EISafter1point5.dta': [[], [0.0, 1.0], [3.0, 5.0], [1000078.0, 794390.6], [3.549097, 3.571528], [-1.12172, -0.978192], [1.0, 1.0], [3.722142, 3.703063], [-17.53955, -15.31691], [0.0020687, 0.0013807], [0.0037947, 0.0024488]], 
  'EISafter1point8.dta': [[], [0.0, 1.0], [3.0, 5.0], [1000078.0, 794390.6], [3.510433, 3.663148], [-1.09073, -0.6606696], [1.0, 1.0], [3.67598, 3.722249], [-17.26059, -10.22371], [0.0024697, 0.0017374], [0.0013082, 0.003586]], 
  'EISafter2.dta': [[], [0.0, 1.0], [3.0, 5.0], [1000078.0, 794390.6], [3.624848, 3.592735], [-0.7191343, -0.613647], [1.0, 1.0], [3.695494, 3.644764], [-11.22122, -9.69271], [0.0023867, 0.0016823], [0.0004637, -0.0001721]], 
  'EISafter2point2.dta': [[], [0.0, 1.0], [4.0, 5.0], [1000078.0, 794390.6], [3.510492, 3.492043], [-0.6629693, -0.5638231], [1.0, 1.0], [3.572546, 3.537268], [-10.69456, -9.171786], [0.0030767, 0.0023714], [-0.0005934, -0.0001875]], 
@@ -124,19 +117,20 @@ dEIS =
 tXX (Universal time dictionary):
 
 tEIS = 
-{'EISafter1point5.dta': 47019, 
+{'Example.dta'        : EIS start time
+ 'EISafter1point5.dta': 47019, 
  'EISafter1point8.dta': 49853, 
  'EISafter2.dta': 52682, 
  'EISafter2point2.dta': 56115, 
  'EISstart.dta': 43389
  }
 
+Same is true for all data (XX = EIS,CV,CA,CP,MF,GC)
 This means we got all the data ready to be called upon with a simple dEIS.values()[i] function, enabling plotting.
 """
-
-
-
 # ---------------------------------------------------------------------------------------------
+
+
 "Creating Results directories"
 os.mkdir('Results')
 os.mkdir('Results/EIS')
@@ -145,21 +139,28 @@ os.mkdir('Results/CV_iR')
 os.mkdir('Results/CA')
 os.mkdir('Results/FE')
 
-"Plotting EIS data, creates UTvsU and UTvsI"
+#----------------------------------------------------------------------------------------------
+
+"Plotting EIS data, creating dictionaries where dict[time] = Current/Flow/Potential"
+
 fullEIS_fig, fullEIS_ax = plt.subplots()
 dEIS_UTvsI = {}
 for i, c in zip(range(len(dEIS)), sns.color_palette()):
     partEIS_fig, partEIS_ax = plt.subplots()
     EISstarttime = list(tEIS.values())[i]                       #Obtain universal time
-    x = list(dEIS.values())[i][4]                               #Zreal
-    y = list(dEIS.values())[i][5]                               #Zimg
     EIScurrent = list(dEIS.values())[i][9]                      #Idc
     EIStime = list(dEIS.values())[i][2]                         #Time
-    for ii in range(len(EIScurrent)):                                   #Creates a dictionary that takes a form:
-        EIStime[ii] = EIStime[ii] + EISstarttime                        # dict = {key = universal time : value = Idc}
-        dEIS_UTvsI[EIStime[ii]] = EIScurrent[ii]        
+    
+    x = list(dEIS.values())[i][4]                               #Zreal
+    y = list(dEIS.values())[i][5]                               #Zimg
+
+    for ii in range(len(EIScurrent)):                                   
+        EIStime[ii] = EIStime[ii] + EISstarttime                        
+        dEIS_UTvsI[EIStime[ii]] = EIScurrent[ii]
+        
     name = str(list(dEIS)[i]).replace('.dta', '')
     name = str(name.replace('point', '.'))
+    
     fullEIS_ax.scatter(x,y, color = c, s = 5, label = str(name))    
     partEIS_ax.scatter(x,y, color = c, s = 10)    
     partEIS_ax.invert_yaxis()
@@ -175,20 +176,20 @@ fullEIS_ax.set_title("All EIS signals")
 fullEIS_fig.savefig('Results/EIS/Combined EIS´s.png')
 
 
-"Plotting non-iR compensated CV´s"
+"Plotting non-iR compensated CV´s, just for comparison, not using the data going forward"
 fullCV_fig, fullCV_ax = plt.subplots()
 for i, c in zip(range(len(dCV)), sns.color_palette()):
     partCV_fig, partCV_ax = plt.subplots()
     y = []
     x = []
-    x1 = list(dCV.values())[i][3]
-    y1 = list(dCV.values())[i][4]
+    x1 = list(dCV.values())[i][3]                                                   #Vf
+    y1 = list(dCV.values())[i][4]                                                   #I
     name = str(list(dCV)[i]).replace('.dta', '')
     name = str(name.replace('point', '.'))   
     for i in range(len(x1)):
         if x1[i] != 0:
-            x.append(x1[i])
-            y.append(y1[i])
+            x.append(x1[i])                      #"Lines in .DTA that indicate a new CV curve got assigned 0 earlier"
+            y.append(y1[i])  
     fullCV_ax.scatter(x,y, color = c, s = 0.01, label = str(name))    
     partCV_ax.scatter(x,y, color = c, s = 0.1)    
     partCV_ax.set_xlabel('U vs. Ag/AgCl [V]')
@@ -217,20 +218,24 @@ for i, c in zip(range(len(dCV)), sns.color_palette()):
     z1 = list(dCV.values())[i][2]
     name = str(list(dCV)[i]).replace('.dta', '')
     name = str(name.replace('point', '.'))
+       
     R = 0
     CVstarttime = list(tCV.values())[i]
     CVname = list(tCV.keys())[i]
     CVEISname = str(CVname.replace('CV', 'EIS'))
     if CVEISname in list(tEIS.keys()):
         EISstarttimee = tEIS[str(CVEISname)]
+        
+        
+        
     if (CVstarttime - EISstarttimee) < 600:
-        print(max(list(dEIS[CVEISname])[5]))
         R = list(dEIS[CVEISname])[4][dEIS[CVEISname][5].index(max(list(dEIS[CVEISname][5])))]
-    for i in range(len(x1)):
-        if x1[i] != 0:
-            CVpotential.append(x1[i])
-            CVcurrent.append(y1[i])
-            CVtime.append(z1[i])
+
+    for i1 in range(len(x1)):
+        if x1[i1] != 0:
+            CVpotential.append(x1[i1])
+            CVcurrent.append(y1[i1])
+            CVtime.append(z1[i1])
     for i in range(len(CVpotential)):
         CVpotential[i] = CVpotential[i] - CVcurrent[i] * R      
     for ii in range(len(CVpotential)):
@@ -321,7 +326,7 @@ cMET = 0.00068207       #calibration factor Methanol
 cCO  = 0.00069638       #calibration factor Carbon monoxide
 
 
-"GCA"
+"GC column A"
 
 FEeth = []                 #5.15 - 5.90 ------Ethylene
 FEmet = []                #9.85 - 10.40-----Methane
@@ -329,12 +334,15 @@ FEco = []                 #10.8 - 11.4 ----CO
 Ueth = []
 Umet = []
 Uco = []
+teth = []
+tmet = []
+tco = []
 
-"GCB"
+"GC column B"
 
 FEhyd = []                 #1.30-1.50 ----- Hydrogen
 Uhyd = []                 #3.00 - 3.50---- Carbon dioxide
-
+thyd = []
 for i in dGCA:
     GCAstarttime = float(tGC[i] - 5)
     if GCAstarttime in dCA_UTvsI and GCAstarttime in dMF_UTvsF:
@@ -346,16 +354,19 @@ for i in dGCA:
                 dGCA[i][2][k] = (((float(dGCA[i][2][k])  * ((InjectionI * InjectionF * GF1) / 60000)) * F * nETH) / (22.4 * 1000)) * cETH               
                 FEeth.append(round(float((dGCA[i][2][k]) / InjectionI), 3))
                 Ueth.append(InjectionU)
+                teth.append(GCAstarttime)
             
             if 9.85 <= float(dGCA[i][1][k]) < 10.40:                     #Methanol
                 dGCA[i][2][k] = (((float(dGCA[i][2][k])  * ((InjectionI * InjectionF * GF1) / 60000)) * F * nMET) / (22.4 * 1000)) * cMET
                 FEmet.append(round(float((dGCA[i][2][k]) / InjectionI), 3))
                 Umet.append(InjectionU)
+                tmet.append(GCAstarttime)
                 
             if 10.5 <= float(dGCA[i][1][k]) < 11.4:                      #Carbon Monoxide
                 dGCA[i][2][k] = (((float(dGCA[i][2][k])  * ((InjectionI * InjectionF * GF1) / 60000)) * F * nCO) / (22.4 * 1000)) * cCO
                 FEco.append(round(float((dGCA[i][2][k]) / InjectionI), 3))
                 Uco.append(InjectionU)
+                tco.append(GCAstarttime)
 
 
 for i in dGCB:
@@ -363,21 +374,36 @@ for i in dGCB:
     if GCBstarttime in dCA_UTvsI and GCBstarttime in dMF_UTvsF:
         InjectionI = dCA_UTvsI[GCBstarttime]
         InjectionF = dMF_UTvsF[GCBstarttime]
-        InjectionU = round(dCA_UTvsU[GCBstarttime], 2)
-        
+        InjectionU = round(dCA_UTvsU[GCBstarttime], 2)        
         for k in range(len(dGCB[i][1])):                                                           
             if 1.30 <= float(dGCB[i][1][k]) < 1.50:                      #Hydrogen
                 dGCB[i][2][k] = (((float(dGCB[i][2][k])  * ((InjectionI * InjectionF * GF1) / 60000)) * F * nHYD) / (22.4 * 1000)) * cHYD            
                 FEhyd.append(round((float(dGCB[i][2][k]) / InjectionI), 3))
                 Uhyd.append(InjectionU)
+                thyd.append(GCBstarttime)
  #           if 3.00 <= float(dGCB[i][1][k]) < 3.50:   
-
 
 Names = ['Ethylene', 'Methanol', 'Carbon monoxide', 'Hydrogen']
 Potentials = [Ueth, Umet, Uco, Uhyd]
 FEs = [FEeth, FEmet, FEco, FEhyd]
+TIMEs = [teth,tmet,tco,thyd]
 FEmax = []
 
+for i in range(len(TIMEs)):
+    for k in range(len(TIMEs[i])):
+        un = []
+        a = TIMEs[i][k]
+        for s in list(tCA.values()):           
+            c = a-s
+            if c <= 0:
+                c = 1000000           
+            un.append(c)
+        TIMEs[i][k] = min(un)
+        TIMEs[i][k] = round(float(TIMEs[i][k] / 60), 2)
+        
+
+
+a2 = 7
 fullFE_fig, fullFE_ax = plt.subplots()
 for i, c in zip(range(len(Potentials)), sns.color_palette()):
     partFE_fig, partFE_ax = plt.subplots()
@@ -388,6 +414,27 @@ for i, c in zip(range(len(Potentials)), sns.color_palette()):
     partFE_ax.set_xlabel('Potential vs Ag/AgCl [U]')
     partFE_ax.set_ylabel('Faradaic efficiency [%]')
     partFE_ax.set_title(Names[i])
+    for ii in range(len(TIMEs[i])):        
+        if ii < (len(TIMEs[i]) - 1):
+            if Potentials[i][ii] == Potentials[i][ii+1] and abs(FEs[i][ii] - FEs[i][ii+1]) < 0.10*FEs[i][ii]:
+                
+                partFE_ax.annotate(str(TIMEs[i][ii]) + ' min', xy = (Potentials[i][ii], FEs[i][ii]),
+                               xytext = (3,a2), textcoords='offset points', size = 9)
+                a2 = a2 * (-1)
+                print(a2)
+            else:
+                partFE_ax.annotate(str(TIMEs[i][ii]) + ' min', xy = (Potentials[i][ii], FEs[i][ii]),
+                               xytext = (3,7), textcoords='offset points', size = 9)
+                print('nope')
+        if ii == len(TIMEs[i]):
+            if Potentials[i][ii] == Potentials[i][ii-1] and abs(FEs[i][ii] - FEs[i][ii-1]) < 0.20*FEs[i][ii]:
+                partFE_ax.annotate(str(TIMEs[i][ii]) + ' min', xy = (Potentials[i][ii], FEs[i][ii]),
+                               xytext = (3,a2), textcoords='offset points', size = 9)
+                a2 = a2 * (-1)
+            else:
+                partFE_ax.annotate(str(TIMEs[i][ii]) + ' min', xy = (Potentials[i][ii], FEs[i][ii]),
+                               xytext = (3,7), textcoords='offset points', size = 9)
+
     partFE_fig.savefig('Results/FE/' + str(Names[i]) + '.png')        
 fullFE_ax.set_ylim([0,max(FEmax)*1.10])
 fullFE_ax.set_xlabel('Potential vs Ag/AgCl [U]')
@@ -395,3 +442,5 @@ fullFE_ax.set_ylabel('Faradaic efficiency [%]')
 fullFE_ax.legend(fontsize = 'small')
 fullFE_ax.set_title('All faradaic efficiencies')
 fullFE_fig.savefig('Results/FE/All FE´s.png')
+
+
