@@ -26,7 +26,7 @@ dGCB =  {}
 
 
 for file in os.listdir():                           #Reads all data files, puts all data in disctionaries
-    if file.endswith('.dta'):
+    if file.endswith('.DTA'):
         with open(file, 'r') as f:
             if file.startswith('EIS'):
                 c = f.readlines()
@@ -203,7 +203,6 @@ fullCV_fig.savefig('Results/CV/Combined CV´s.png')
 
 
 
-
 "Plotting iR compensated CV´s"
 fullCViR_fig, fullCViR_ax = plt.subplots()
 dCV_UTvsI = {}
@@ -219,16 +218,21 @@ for i, c in zip(range(len(dCV)), sns.color_palette()):
     name = str(list(dCV)[i]).replace('.dta', '')
     name = str(name.replace('point', '.'))
     R = 0
-    CVstarttime = list(tEIS.values())[i]
-    if list(tCV.values())[i] - CVstarttime <= 600: #If EIS was done atleast 10min before CV, compensate for resistance, else not
-        R = list(dEIS.values())[i][4][list(dEIS.values())[i][5].index(max(list(dEIS.values())[i][5]))]                       
+    CVstarttime = list(tCV.values())[i]
+    CVname = list(tCV.keys())[i]
+    CVEISname = str(CVname.replace('CV', 'EIS'))
+    if CVEISname in list(tEIS.keys()):
+        EISstarttimee = tEIS[str(CVEISname)]
+    if (CVstarttime - EISstarttimee) < 600:
+        print(max(list(dEIS[CVEISname])[5]))
+        R = list(dEIS[CVEISname])[4][dEIS[CVEISname][5].index(max(list(dEIS[CVEISname][5])))]
     for i in range(len(x1)):
         if x1[i] != 0:
             CVpotential.append(x1[i])
             CVcurrent.append(y1[i])
             CVtime.append(z1[i])
     for i in range(len(CVpotential)):
-        CVpotential[i] = CVpotential[i] - CVcurrent[i] * R           
+        CVpotential[i] = CVpotential[i] - CVcurrent[i] * R      
     for ii in range(len(CVpotential)):
         CVtime[ii] = CVtime[ii] + CVstarttime
         dCV_UTvsI[CVtime[ii]] = CVcurrent[ii]
@@ -331,19 +335,14 @@ Uco = []
 FEhyd = []                 #1.30-1.50 ----- Hydrogen
 Uhyd = []                 #3.00 - 3.50---- Carbon dioxide
 
-
-
-
-
 for i in dGCA:
     GCAstarttime = float(tGC[i] - 5)
     if GCAstarttime in dCA_UTvsI and GCAstarttime in dMF_UTvsF:
         InjectionI = dCA_UTvsI[GCAstarttime]
         InjectionF = dMF_UTvsF[GCAstarttime]
-        InjectionU = round(dCA_UTvsU[GCAstarttime], 2)
-        
+        InjectionU = round(dCA_UTvsU[GCAstarttime], 2)     
         for k in range(len(dGCA[i][1])):                                                             
-            if 5.15 <= float(dGCA[i][1][k]) < 5.90:                      #Ethylene
+            if 5.2 <= float(dGCA[i][1][k]) < 5.90:                      #Ethylene
                 dGCA[i][2][k] = (((float(dGCA[i][2][k])  * ((InjectionI * InjectionF * GF1) / 60000)) * F * nETH) / (22.4 * 1000)) * cETH               
                 FEeth.append(round(float((dGCA[i][2][k]) / InjectionI), 3))
                 Ueth.append(InjectionU)
@@ -353,11 +352,11 @@ for i in dGCA:
                 FEmet.append(round(float((dGCA[i][2][k]) / InjectionI), 3))
                 Umet.append(InjectionU)
                 
-            if 10.8 <= float(dGCA[i][1][k]) < 11.4:                      #Carbon Monoxide
+            if 10.5 <= float(dGCA[i][1][k]) < 11.4:                      #Carbon Monoxide
                 dGCA[i][2][k] = (((float(dGCA[i][2][k])  * ((InjectionI * InjectionF * GF1) / 60000)) * F * nCO) / (22.4 * 1000)) * cCO
                 FEco.append(round(float((dGCA[i][2][k]) / InjectionI), 3))
                 Uco.append(InjectionU)
-                
+
 
 for i in dGCB:
     GCBstarttime = float(tGC[i] - 10)
@@ -373,21 +372,19 @@ for i in dGCB:
                 Uhyd.append(InjectionU)
  #           if 3.00 <= float(dGCB[i][1][k]) < 3.50:   
 
-     
+
 Names = ['Ethylene', 'Methanol', 'Carbon monoxide', 'Hydrogen']
 Potentials = [Ueth, Umet, Uco, Uhyd]
 FEs = [FEeth, FEmet, FEco, FEhyd]
 FEmax = []
 
 fullFE_fig, fullFE_ax = plt.subplots()
-
 for i, c in zip(range(len(Potentials)), sns.color_palette()):
     partFE_fig, partFE_ax = plt.subplots()
     FEmax.append(max(FEs[i]))
     fullFE_ax.scatter(Potentials[i], FEs[i], color = c, s = 5, label = (Names[i]))
     partFE_ax.scatter(Potentials[i], FEs[i], color = c, s = 10)
     partFE_ax.set_ylim([0,float((max(FEs[i]))*1.10)])
-    partFE_ax.set_xlim([-2.2, -1])
     partFE_ax.set_xlabel('Potential vs Ag/AgCl [U]')
     partFE_ax.set_ylabel('Faradaic efficiency [%]')
     partFE_ax.set_title(Names[i])
