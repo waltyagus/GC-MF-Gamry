@@ -11,6 +11,8 @@ tCA = {}                        #CA universal time...
 dCA = {}
 tCV = {}
 dCV = {}
+tCP = {}
+dCP = {}
 tMF = {}
 dMF = {}
 tGC = {}
@@ -45,7 +47,7 @@ for file in os.listdir():                           #Reads all data files, puts 
                     a1[2] = float(a1[2])
                     if a1[2].is_integer() == True:                  #Makes sure it only takes 1 measurement per second
                         for k in range(1,9):
-                            t[k].append(float(a1[k]))                   #0-empty, 1-Pt, 2-Time, 3-Vf, 4-Im, 5-Vu
+                            t[k].append(float(a1[k]))               #0-empty, 1-Pt, 2-Time, 3-Vf, 4-Im, 5-Vu
                 dCA['{}'.format(file)] = t                          #6-Sig, 7-Ach, 8-IERange, 9-Over
             elif file.startswith('CV'):         #CV
                 c = f.readlines()
@@ -61,6 +63,19 @@ for file in os.listdir():                           #Reads all data files, puts 
                         else:
                             t[k].append(0)
                 dCV['{}'.format(file)] = t
+            elif file.startswith('CP'):         #CP
+                c = f.readlines()
+                a = c[4].split('\t')[2].split(':')
+                tCP['{}'.format(file)] = int(int(a[2]) + int(a[1])*60 + int(a[0])* 3600)
+                b = c[64:]                                                            #CA data starts at line 61
+                t = [[] for _ in range(0,9)]
+                for i in range(len(b)):
+                    a1 = b[i].split('\t')
+                    a1[2] = float(a1[2])
+                    if a1[2].is_integer() == True:                  #Makes sure it only takes 1 measurement per second
+                        for k in range(1,9):
+                            t[k].append(float(a1[k]))               #0-empty, 1-Pt, 2-Time, 3-Vf, 4-Im, 5-Vu
+                dCP['{}'.format(file)] = t                          #6-Sig, 7-Ach, 8-IERange, 9-Over
     if file.startswith('plotdata'):             #MF 
         with open(file, 'r') as f:
             c = f.readlines()[0:]                                                      #MF data starts instantly
@@ -338,11 +353,7 @@ teth = []
 tmet = []
 tco = []
 
-"GC column B"
 
-FEhyd = []                 #1.30-1.50 ----- Hydrogen
-Uhyd = []                 #3.00 - 3.50---- Carbon dioxide
-thyd = []
 for i in dGCA:
     GCAstarttime = float(tGC[i] - 5)
     if GCAstarttime in dCA_UTvsI and GCAstarttime in dMF_UTvsF:
@@ -369,6 +380,14 @@ for i in dGCA:
                 tco.append(GCAstarttime)
 
 
+
+"GC column B"
+
+FEhyd = []                 #1.30-1.50 ----- Hydrogen
+Uhyd = []                 #3.00 - 3.50---- Carbon dioxide
+thyd = []
+
+
 for i in dGCB:
     GCBstarttime = float(tGC[i] - 10)
     if GCBstarttime in dCA_UTvsI and GCBstarttime in dMF_UTvsF:
@@ -380,15 +399,17 @@ for i in dGCB:
                 dGCB[i][2][k] = (((float(dGCB[i][2][k])  * ((InjectionI * InjectionF * GF1) / 60000)) * F * nHYD) / (22.4 * 1000)) * cHYD            
                 FEhyd.append(round((float(dGCB[i][2][k]) / InjectionI), 3))
                 Uhyd.append(InjectionU)
-                thyd.append(GCBstarttime)
- #           if 3.00 <= float(dGCB[i][1][k]) < 3.50:   
+                thyd.append(GCBstarttime)   
 
+     
+""
 Names = ['Ethylene', 'Methanol', 'Carbon monoxide', 'Hydrogen']
 Potentials = [Ueth, Umet, Uco, Uhyd]
 FEs = [FEeth, FEmet, FEco, FEhyd]
 TIMEs = [teth,tmet,tco,thyd]
 FEmax = []
 
+"Creates an array where each data point (FE @ Potential) has a time value --> Namely this point happened 25min into CA"
 for i in range(len(TIMEs)):
     for k in range(len(TIMEs[i])):
         un = []
@@ -402,7 +423,7 @@ for i in range(len(TIMEs)):
         TIMEs[i][k] = round(float(TIMEs[i][k] / 60), 2)
         
 
-
+"Plots the final FE/U graphs, also labels the datapoints for time"
 a2 = 7
 fullFE_fig, fullFE_ax = plt.subplots()
 for i, c in zip(range(len(Potentials)), sns.color_palette()):
@@ -411,33 +432,38 @@ for i, c in zip(range(len(Potentials)), sns.color_palette()):
     fullFE_ax.scatter(Potentials[i], FEs[i], color = c, s = 5, label = (Names[i]))
     partFE_ax.scatter(Potentials[i], FEs[i], color = c, s = 10)
     partFE_ax.set_ylim([0,float((max(FEs[i]))*1.10)])
-    partFE_ax.set_xlabel('Potential vs Ag/AgCl [U]')
+    partFE_ax.set_xlabel('Potential vs Ag/AgCl [V]')
     partFE_ax.set_ylabel('Faradaic efficiency [%]')
     partFE_ax.set_title(Names[i])
     for ii in range(len(TIMEs[i])):        
-        if ii < (len(TIMEs[i]) - 1):
-            if Potentials[i][ii] == Potentials[i][ii+1] and abs(FEs[i][ii] - FEs[i][ii+1]) < 0.10*FEs[i][ii]:
+       partFE_ax.annotate(str(TIMEs[i][ii]) + ' min', xy = (Potentials[i][ii], FEs[i][ii]),
+                               xytext = (3, 5), textcoords='offset points', size = 9)
+       """ 
+       if ii < (len(TIMEs[i]) - 1):
+            if Potentials[i][ii] == Potentials[i][ii+1] and abs(FEs[i][ii] - FEs[i][ii+1]) < 0.25*FEs[i][ii]:
                 
-                partFE_ax.annotate(str(TIMEs[i][ii]) + ' min', xy = (Potentials[i][ii], FEs[i][ii]),
-                               xytext = (3,a2), textcoords='offset points', size = 9)
+                
                 a2 = a2 * (-1)
-                print(a2)
+                print(str(Potentials[i][ii]) + '----------------' + str(FEs[i][ii]))
             else:
                 partFE_ax.annotate(str(TIMEs[i][ii]) + ' min', xy = (Potentials[i][ii], FEs[i][ii]),
                                xytext = (3,7), textcoords='offset points', size = 9)
-                print('nope')
+                print(str(Potentials[i][ii])+ '-----NOPE------' + str(FEs[i][ii]))
         if ii == len(TIMEs[i]):
-            if Potentials[i][ii] == Potentials[i][ii-1] and abs(FEs[i][ii] - FEs[i][ii-1]) < 0.20*FEs[i][ii]:
+            if Potentials[i][ii] == Potentials[i][ii-1] and abs(FEs[i][ii] - FEs[i][ii-1]) < 0.25*FEs[i][ii]:
                 partFE_ax.annotate(str(TIMEs[i][ii]) + ' min', xy = (Potentials[i][ii], FEs[i][ii]),
                                xytext = (3,a2), textcoords='offset points', size = 9)
                 a2 = a2 * (-1)
+                print(str(Potentials[i][ii]) + '----------------' + str(FEs[i][ii]))
+                
             else:
                 partFE_ax.annotate(str(TIMEs[i][ii]) + ' min', xy = (Potentials[i][ii], FEs[i][ii]),
                                xytext = (3,7), textcoords='offset points', size = 9)
-
+                print(str(Potentials[i][ii])+ '-----NOPE------' + str(FEs[i][ii]))
+"""
     partFE_fig.savefig('Results/FE/' + str(Names[i]) + '.png')        
 fullFE_ax.set_ylim([0,max(FEmax)*1.10])
-fullFE_ax.set_xlabel('Potential vs Ag/AgCl [U]')
+fullFE_ax.set_xlabel('Potential vs Ag/AgCl [V]')
 fullFE_ax.set_ylabel('Faradaic efficiency [%]')
 fullFE_ax.legend(fontsize = 'small')
 fullFE_ax.set_title('All faradaic efficiencies')
