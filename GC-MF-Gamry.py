@@ -19,9 +19,14 @@ tGC = {}
 dGCA = {}
 dGCB =  {}
 
-
-
-
+dEIS_UTvsI = {}
+dCV_UTvsI = {}
+dCV_UTvsU = {}
+dCA_UTvsI = {}
+dCA_UTvsU = {}
+dCP_UTvsI = {}
+dCP_UTvsU = {}
+    
 for file in os.listdir():                           #Reads all data files, puts all data in disctionaries
     if file.endswith('.DTA'):
         with open(file, 'r') as f:
@@ -143,18 +148,13 @@ This means we got all the data ready to be called upon with a simple dEIS.values
 
 "Creating Results directories"
 os.mkdir('Results')
-os.mkdir('Results/EIS')
-os.mkdir('Results/CV')
-os.mkdir('Results/CV_iR')
-os.mkdir('Results/CA')
-os.mkdir('Results/FE')
 
 #----------------------------------------------------------------------------------------------
 
 "Plotting EIS data, creating dictionaries where dict[time] = Current/Flow/Potential"
 if dEIS != {}:
+    os.mkdir('Results/EIS')
     fullEIS_fig, fullEIS_ax = plt.subplots()
-    dEIS_UTvsI = {}
     for i, c in zip(range(len(dEIS)), sns.color_palette()):
         partEIS_fig, partEIS_ax = plt.subplots()
         EISstarttime = list(tEIS.values())[i]                       #Obtain universal time
@@ -188,6 +188,7 @@ if dEIS != {}:
 
 "Plotting non-iR compensated CV´s, just for comparison, not using the data going forward"
 if dCV != {}:
+    os.mkdir('Results/CV')
     fullCV_fig, fullCV_ax = plt.subplots()
     for i, c in zip(range(len(dCV)), sns.color_palette()):
         partCV_fig, partCV_ax = plt.subplots()
@@ -216,9 +217,8 @@ if dCV != {}:
 
 "Plotting iR compensated CV´s"
 if dCV != {}:
+    os.mkdir('Results/CV_iR')
     fullCViR_fig, fullCViR_ax = plt.subplots()
-    dCV_UTvsI = {}
-    dCV_UTvsU = {}
     for i, c in zip(range(len(dCV)), sns.color_palette()):    
         partCViR_fig, partCViR_ax = plt.subplots()
         CVcurrent = []
@@ -268,17 +268,16 @@ if dCV != {}:
 
 "Plotting CA data"
 if dCA != {}:
+    os.mkdir('Results/CA')
     fullCA_fig, fullCA_ax = plt.subplots()
     amin = []
     amax = []
-    dCA_UTvsI = {}
-    dCA_UTvsU = {}
     for i, c in zip(range(len(dCA)), sns.color_palette()):
         partCA_fig, partCA_ax = plt.subplots()    
         CAcurrent = list(dCA.values())[i][4] 
         CAtime = list(dCA.values())[i][2]
         name = str(list(dCA)[i]).replace('.dta', '')
-        name = str(name.replace('point', '.'))    
+        name = str(name.replace('_', ' '))    
         fullCA_ax.scatter(CAtime[5:],CAcurrent[5:], color = c, s = 3, label = str(name))    
         partCA_ax.scatter(CAtime[5:],CAcurrent[5:], color = c, s = 2)
         partCA_ax.set_ylim([max(CAcurrent[5:])*0.90,min(CAcurrent[5:]) *1.10]) 
@@ -304,6 +303,47 @@ if dCA != {}:
     fullCA_fig.savefig('Results/CA/Combined CA´s.png')
 
 
+
+"Plotting CP data"
+if dCP != {}:
+    os.mkdir('Results/CP')
+    fullCP_fig, fullCP_ax = plt.subplots()
+    amin = []
+    amax = []
+    for i, c in zip(range(len(dCP)), sns.color_palette()):
+        partCP_fig, partCP_ax = plt.subplots()    
+        CPpotential = list(dCP.values())[i][3] 
+        CPtime = list(dCP.values())[i][2]
+        name = str(list(dCP)[i]).replace('.dta', '')
+        name = str(name.replace('_', ' '))    
+        fullCP_ax.scatter(CPtime[5:],CPpotential[5:], color = c, s = 3, label = str(name))    
+        partCP_ax.scatter(CPtime[5:],CPpotential[5:], color = c, s = 2)
+        partCP_ax.set_ylim([max(CPpotential[5:])*0.90,min(CPpotential[5:]) *1.10]) 
+        amin.append(min(CPpotential[5:]))
+        amax.append(max(CPpotential[5:]))
+        partCP_ax.set_xlabel('Time [s]')
+        partCP_ax.set_ylabel('Potential [V]')    
+        partCP_ax.set_title(name)
+        partCP_fig.savefig('Results/CP/' + str(name) + '.png')
+        
+        CPstarttime = list(tCP.values())[i]
+        CPcurrent = list(dCP.values())[i][4]
+        CPunivtime = list(dCP.values())[i][2]
+        for ii in range(len(CPpotential)):
+            CPunivtime[ii] = CPunivtime[ii] + CPstarttime
+            dCP_UTvsI[CPunivtime[ii]] = CPcurrent[ii]
+            dCP_UTvsU[CPunivtime[ii]] = CPpotential[ii]    
+    fullCP_ax.set_ylim((max(amax))*0.90, min(amin)*1.1)
+    fullCP_ax.legend(fontsize = 'small')
+    fullCP_ax.set_xlabel('Time [s]')
+    fullCP_ax.set_ylabel('Potential')
+    fullCP_ax.set_title("All CP signals")
+    fullCP_fig.savefig('Results/CP/Combined CP´s.png')
+
+
+
+
+
   
 "Links MF flow to universal time"
 if dMF != {}:
@@ -323,6 +363,8 @@ if dMF != {}:
 
 "Gas chromatography"
 if dGCA != {}:
+    os.mkdir('Results/FE')
+
     F = 96485
     #GF1 = 1.2  # gas flow factor for Ar -------------------- CHANGE  TO 1 IF USING CO2
     GF1 = 1
@@ -353,29 +395,52 @@ if dGCA != {}:
     
     for i in dGCA:
         GCAstarttime = float(tGC[i] - 5)
-        if GCAstarttime in dCA_UTvsI and GCAstarttime in dMF_UTvsF:
-            InjectionI = dCA_UTvsI[GCAstarttime]
-            InjectionF = dMF_UTvsF[GCAstarttime]
-            InjectionU = round(dCA_UTvsU[GCAstarttime], 2)     
-            for k in range(len(dGCA[i][1])):                                                             
-                if 5.2 <= float(dGCA[i][1][k]) < 5.90:                      #Ethylene
-                    dGCA[i][2][k] = (((float(dGCA[i][2][k])  * ((InjectionI * InjectionF * GF1) / 60000)) * F * nETH) / (22.4 * 1000)) * cETH               
-                    FEeth.append(round(float((dGCA[i][2][k]) / InjectionI), 3))
-                    Ueth.append(InjectionU)
-                    teth.append(GCAstarttime)
-                
-                if 9.85 <= float(dGCA[i][1][k]) < 10.40:                     #Methanol
-                    dGCA[i][2][k] = (((float(dGCA[i][2][k])  * ((InjectionI * InjectionF * GF1) / 60000)) * F * nMET) / (22.4 * 1000)) * cMET
-                    FEmet.append(round(float((dGCA[i][2][k]) / InjectionI), 3))
-                    Umet.append(InjectionU)
-                    tmet.append(GCAstarttime)
+        if dCA_UTvsI != {}:
+            if GCAstarttime in dCA_UTvsI and GCAstarttime in dMF_UTvsF:
+                InjectionI = dCA_UTvsI[GCAstarttime]
+                InjectionF = dMF_UTvsF[GCAstarttime]
+                InjectionU = round(dCA_UTvsU[GCAstarttime], 2)     
+                for k in range(len(dGCA[i][1])):                                                             
+                    if 5.2 <= float(dGCA[i][1][k]) < 5.90:                      #Ethylene
+                        dGCA[i][2][k] = (((float(dGCA[i][2][k])  * ((InjectionI * InjectionF * GF1) / 60000)) * F * nETH) / (22.4 * 1000)) * cETH               
+                        FEeth.append(round(float((dGCA[i][2][k]) / InjectionI), 3))
+                        Ueth.append(InjectionU)
+                        teth.append(GCAstarttime)
                     
-                if 10.5 <= float(dGCA[i][1][k]) < 11.4:                      #Carbon Monoxide
-                    dGCA[i][2][k] = (((float(dGCA[i][2][k])  * ((InjectionI * InjectionF * GF1) / 60000)) * F * nCO) / (22.4 * 1000)) * cCO
-                    FEco.append(round(float((dGCA[i][2][k]) / InjectionI), 3))
-                    Uco.append(InjectionU)
-                    tco.append(GCAstarttime)
-    
+                    if 9.85 <= float(dGCA[i][1][k]) < 10.40:                     #Methanol
+                        dGCA[i][2][k] = (((float(dGCA[i][2][k])  * ((InjectionI * InjectionF * GF1) / 60000)) * F * nMET) / (22.4 * 1000)) * cMET
+                        FEmet.append(round(float((dGCA[i][2][k]) / InjectionI), 3))
+                        Umet.append(InjectionU)
+                        tmet.append(GCAstarttime)
+                        
+                    if 10.5 <= float(dGCA[i][1][k]) < 11.4:                      #Carbon Monoxide
+                        dGCA[i][2][k] = (((float(dGCA[i][2][k])  * ((InjectionI * InjectionF * GF1) / 60000)) * F * nCO) / (22.4 * 1000)) * cCO
+                        FEco.append(round(float((dGCA[i][2][k]) / InjectionI), 3))
+                        Uco.append(InjectionU)
+                        tco.append(GCAstarttime)
+        if dCP_UTvsI != {}:
+            if GCAstarttime in dCP_UTvsI and GCAstarttime in dMF_UTvsF:
+                InjectionI = dCP_UTvsI[GCAstarttime]
+                InjectionF = dMF_UTvsF[GCAstarttime]
+                InjectionU = round(dCP_UTvsU[GCAstarttime], 2)     
+                for k in range(len(dGCA[i][1])):                                                             
+                    if 5.2 <= float(dGCA[i][1][k]) < 5.90:                      #Ethylene
+                        dGCA[i][2][k] = (((float(dGCA[i][2][k])  * ((InjectionI * InjectionF * GF1) / 60000)) * F * nETH) / (22.4 * 1000)) * cETH               
+                        FEeth.append(round(float((dGCA[i][2][k]) / InjectionI), 3))
+                        Ueth.append(InjectionU)
+                        teth.append(GCAstarttime)
+                    
+                    if 9.85 <= float(dGCA[i][1][k]) < 10.40:                     #Methanol
+                        dGCA[i][2][k] = (((float(dGCA[i][2][k])  * ((InjectionI * InjectionF * GF1) / 60000)) * F * nMET) / (22.4 * 1000)) * cMET
+                        FEmet.append(round(float((dGCA[i][2][k]) / InjectionI), 3))
+                        Umet.append(InjectionU)
+                        tmet.append(GCAstarttime)
+                        
+                    if 10.5 <= float(dGCA[i][1][k]) < 11.4:                      #Carbon Monoxide
+                        dGCA[i][2][k] = (((float(dGCA[i][2][k])  * ((InjectionI * InjectionF * GF1) / 60000)) * F * nCO) / (22.4 * 1000)) * cCO
+                        FEco.append(round(float((dGCA[i][2][k]) / InjectionI), 3))
+                        Uco.append(InjectionU)
+                        tco.append(GCAstarttime)
     
     
     "GC column B"
@@ -387,16 +452,28 @@ if dGCA != {}:
     
     for i in dGCB:
         GCBstarttime = float(tGC[i] - 10)
-        if GCBstarttime in dCA_UTvsI and GCBstarttime in dMF_UTvsF:
-            InjectionI = dCA_UTvsI[GCBstarttime]
-            InjectionF = dMF_UTvsF[GCBstarttime]
-            InjectionU = round(dCA_UTvsU[GCBstarttime], 2)        
-            for k in range(len(dGCB[i][1])):                                                           
-                if 1.30 <= float(dGCB[i][1][k]) < 1.50:                      #Hydrogen
-                    dGCB[i][2][k] = (((float(dGCB[i][2][k])  * ((InjectionI * InjectionF * GF1) / 60000)) * F * nHYD) / (22.4 * 1000)) * cHYD            
-                    FEhyd.append(round((float(dGCB[i][2][k]) / InjectionI), 3))
-                    Uhyd.append(InjectionU)
-                    thyd.append(GCBstarttime)
+        if dCA_UTvsI != {}:
+            if GCBstarttime in dCA_UTvsI and GCBstarttime in dMF_UTvsF:
+                InjectionI = dCA_UTvsI[GCBstarttime]
+                InjectionF = dMF_UTvsF[GCBstarttime]
+                InjectionU = round(dCA_UTvsU[GCBstarttime], 2)        
+                for k in range(len(dGCB[i][1])):                                                           
+                    if 1.30 <= float(dGCB[i][1][k]) < 1.50:                      #Hydrogen
+                        dGCB[i][2][k] = (((float(dGCB[i][2][k])  * ((InjectionI * InjectionF * GF1) / 60000)) * F * nHYD) / (22.4 * 1000)) * cHYD            
+                        FEhyd.append(round((float(dGCB[i][2][k]) / InjectionI), 3))
+                        Uhyd.append(InjectionU)
+                        thyd.append(GCBstarttime)
+        if dCP_UTvsI != {}:
+            if GCBstarttime in dCP_UTvsI and GCBstarttime in dMF_UTvsF:
+                InjectionI = dCP_UTvsI[GCBstarttime]
+                InjectionF = dMF_UTvsF[GCBstarttime]
+                InjectionU = round(dCP_UTvsU[GCBstarttime], 2)        
+                for k in range(len(dGCB[i][1])):                                                           
+                    if 1.30 <= float(dGCB[i][1][k]) < 1.50:                      #Hydrogen
+                        dGCB[i][2][k] = (((float(dGCB[i][2][k])  * ((InjectionI * InjectionF * GF1) / 60000)) * F * nHYD) / (22.4 * 1000)) * cHYD            
+                        FEhyd.append(round((float(dGCB[i][2][k]) / InjectionI), 3))
+                        Uhyd.append(InjectionU)
+                        thyd.append(GCBstarttime)
     
     
          
@@ -423,7 +500,6 @@ if dGCA != {}:
             
     
     "Plots the final FE/U graphs, also labels the datapoints for time"
-    a2 = 7
     fullFE_fig, fullFE_ax = plt.subplots()
     for i, c in zip(range(len(Potentials)), sns.color_palette()):
         partFE_fig, partFE_ax = plt.subplots()
@@ -437,29 +513,7 @@ if dGCA != {}:
         for ii in range(len(TIMEs[i])):        
            partFE_ax.annotate(str(TIMEs[i][ii]) + ' min', xy = (Potentials[i][ii], FEs[i][ii]),
                                    xytext = (3, 5), textcoords='offset points', size = 9)
-           """ 
-           if ii < (len(TIMEs[i]) - 1):
-                if Potentials[i][ii] == Potentials[i][ii+1] and abs(FEs[i][ii] - FEs[i][ii+1]) < 0.25*FEs[i][ii]:
-                    
-                    
-                    a2 = a2 * (-1)
-                    print(str(Potentials[i][ii]) + '----------------' + str(FEs[i][ii]))
-                else:
-                    partFE_ax.annotate(str(TIMEs[i][ii]) + ' min', xy = (Potentials[i][ii], FEs[i][ii]),
-                                   xytext = (3,7), textcoords='offset points', size = 9)
-                    print(str(Potentials[i][ii])+ '-----NOPE------' + str(FEs[i][ii]))
-            if ii == len(TIMEs[i]):
-                if Potentials[i][ii] == Potentials[i][ii-1] and abs(FEs[i][ii] - FEs[i][ii-1]) < 0.25*FEs[i][ii]:
-                    partFE_ax.annotate(str(TIMEs[i][ii]) + ' min', xy = (Potentials[i][ii], FEs[i][ii]),
-                                   xytext = (3,a2), textcoords='offset points', size = 9)
-                    a2 = a2 * (-1)
-                    print(str(Potentials[i][ii]) + '----------------' + str(FEs[i][ii]))
-                    
-                else:
-                    partFE_ax.annotate(str(TIMEs[i][ii]) + ' min', xy = (Potentials[i][ii], FEs[i][ii]),
-                                   xytext = (3,7), textcoords='offset points', size = 9)
-                    print(str(Potentials[i][ii])+ '-----NOPE------' + str(FEs[i][ii]))
-    """
+
         partFE_fig.savefig('Results/FE/' + str(Names[i]) + '.png')        
     fullFE_ax.set_ylim([0,max(FEmax)*1.10])
     fullFE_ax.set_xlabel('Potential vs Ag/AgCl [V]')
