@@ -87,7 +87,7 @@ for file in os.listdir():                           #Reads all data files, puts 
             c = f.readlines()            
             a = c[1].split(',')
             tGC['{}'.format(file)] = int(int(a[3][11:13])*3600 + int(a[3][14:16])*60 + int(a[3][17:19]))
-            if f.name[33] == 'B':    
+            if str((c[6].split(','))[3][1]) == 'B':
                 for i in range(26,40):                                   #GC data starts at 26 and ends in dynamic line
                     if c[i][0:5] == '"",""' and c[i+1][0:5] == '"",""':
                         t = [[] for _ in range(0,8)]
@@ -96,7 +96,7 @@ for file in os.listdir():                           #Reads all data files, puts 
                             for k in [0,1,2,3,4,5,7]:
                                 t[k].append(a1[k])         
                         dGCB['{}'.format(file)] = t                                       
-            if f.name[33] == 'A':
+            if str((c[6].split(','))[3][1]) == 'A':
                 for i in range(26,35):
                     if c[i][0:5] == '"",""' and c[i + 1][0:5] == '"",""':
                         t = [[] for _ in range(0,8)]
