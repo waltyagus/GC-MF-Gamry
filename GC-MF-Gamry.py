@@ -1,8 +1,8 @@
 import matplotlib.pyplot as plt
 import os
 import seaborn as sns
-import tabulate
-
+from tabulate import tabulate
+import xlsxwriter
 
 
 
@@ -67,7 +67,7 @@ for file in os.listdir():                           #Reads all data files, puts 
                 for iii in range(len(c)-1):
                     if c[iii][0:6] == 'CURVE1':
                         s1 = iii + 3
-                b = c[s1:]                                                               #CV data starts at line 60
+                b = c[s1:]                                                               
                 t = [[] for _ in range(0,9)]
                 for i in range(len(b)-1):                             #0-empty, 1-Pt, 2-Time, 3-Vf, 4-Im, 5-Vu
                     a1 = b[i].split('\t')                           #6-Sig, 7-Ach, 8-IERange, 9-Over
@@ -357,8 +357,6 @@ if dCP != {}:
 
 
 
-
-
   
 "Links MF flow to universal time"
 if dMF != {}:
@@ -423,7 +421,7 @@ if dGCA != {}:
                             FEeth.append(round(float(abs(dGCA[i][2][k]/(InjectionI * 10))), 2))
                             Ueth.append(InjectionU)
                             teth.append(GCAstarttime)
-                            Ieth.apend(InjectionI)
+                            Ieth.apend(round(InjectionI, 3))
                     
                     if 9.85 <= float(dGCA[i][1][k]) < 10.40:                     #Methanol
                         dGCA[i][2][k] = (((float(dGCA[i][2][k])  * ((InjectionF * GF1) / 60000)) * F * nMET) / (22.4 * 1000)) * cMET
@@ -431,7 +429,7 @@ if dGCA != {}:
                             FEmet.append(round(float(abs(dGCA[i][2][k]/(InjectionI * 10))), 2))
                             Umet.append(InjectionU)
                             tmet.append(GCAstarttime)
-                            Imet.append(InjectionI)
+                            Imet.append(round(InjectionI, 3))
                         
                     if 10.5 <= float(dGCA[i][1][k]) < 11.4:                      #Carbon Monoxide
                         dGCA[i][2][k] = (((float(dGCA[i][2][k])  * ((InjectionF * GF1) / 60000)) * F * nCO) / (22.4 * 1000)) * cCO                                              
@@ -439,7 +437,7 @@ if dGCA != {}:
                             FEco.append(round(float(abs(dGCA[i][2][k]/(InjectionI * 10))), 2))
                             Uco.append(InjectionU)
                             tco.append(GCAstarttime)
-                            Ico.append(InjectionI)
+                            Ico.append(round(InjectionI, 3))
                         
         if dCP_UTvsI != {}:
             if GCAstarttime in dCP_UTvsI and GCAstarttime in dMF_UTvsF:
@@ -453,7 +451,7 @@ if dGCA != {}:
                             FEeth.append(round(float(abs(dGCA[i][2][k]/(InjectionI * 10))), 2))
                             Ueth.append(InjectionU)
                             teth.append(GCAstarttime)
-                            Ieth.apend(InjectionI)
+                            Ieth.apend(round(InjectionI, 3))
                     
                     if 9.85 <= float(dGCA[i][1][k]) < 10.40:                     #Methanol
                         dGCA[i][2][k] = (((float(dGCA[i][2][k])  * ((InjectionF * GF1) / 60000)) * F * nMET) / (22.4 * 1000)) * cMET
@@ -461,7 +459,7 @@ if dGCA != {}:
                             FEmet.append(round(float(abs(dGCA[i][2][k]/(InjectionI * 10))), 2))
                             Umet.append(InjectionU)
                             tmet.append(GCAstarttime)
-                            Imet.append(InjectionI)
+                            Imet.append(round(InjectionI, 3))
                         
                     if 10.5 <= float(dGCA[i][1][k]) < 11.4:                      #Carbon Monoxide
                         dGCA[i][2][k] = (((float(dGCA[i][2][k])  * ((InjectionF * GF1) / 60000)) * F * nCO) / (22.4 * 1000)) * cCO                                              
@@ -469,7 +467,7 @@ if dGCA != {}:
                             FEco.append(round(float(abs(dGCA[i][2][k]/(InjectionI * 10))), 2))
                             Uco.append(InjectionU)
                             tco.append(GCAstarttime)
-                            Ico.append(InjectionI)
+                            Ico.append(round(InjectionI, 3))
     
   
     
@@ -495,7 +493,7 @@ if dGCA != {}:
                             FEhyd.append(round(float(abs(dGCB[i][2][k]/(InjectionI*10))), 2))
                             Uhyd.append(InjectionU)
                             thyd.append(GCBstarttime)
-                            Ihyd.append(InjectionI)
+                            Ihyd.append(round(InjectionI, 3))
         if dCP_UTvsI != {}:
             if GCBstarttime in dCP_UTvsI and GCBstarttime in dMF_UTvsF:
                 InjectionI = dCP_UTvsI[GCBstarttime]
@@ -508,7 +506,7 @@ if dGCA != {}:
                             FEhyd.append(round(float(abs(dGCB[i][2][k]/(InjectionI*10))), 2))
                             Uhyd.append(InjectionU)
                             thyd.append(GCBstarttime)
-                            Ihyd.append(InjectionI)
+                            Ihyd.append(round(InjectionI, 3))
         
     
          
@@ -551,7 +549,12 @@ if dGCA != {}:
             if TIMEs[i] != []:
                 TIMEs[i][k] = min(un)
                 TIMEs[i][k] = round(float(TIMEs[i][k] / 60), 2)
-
+                
+    
+                
+    Tab_headers = ['Product', 'Pot. [V]', 'Curr. [I]', 'After [min]', 'FE [%]']
+    Tab_values = []
+    
     "Plots the final FE/U graphs, also labels the datapoints for time"
     fullFE_fig, fullFE_ax = plt.subplots()
     for i, c in zip(range(len(Potentials)), sns.color_palette()):
@@ -570,23 +573,41 @@ if dGCA != {}:
                                        xytext = (3, 5), textcoords='offset points', size = 9)
 
                 if i == 0:
-                    t1 = 'Eth'
+                    t1 = 'Ethylene'
                 elif i == 1:
-                    t1 = 'Met'
+                    t1 = 'Methanol'
                 elif i == 2:
-                    t1 = 'Co'
+                    t1 = 'CO'
                 elif i == 3:                    
-                    t1 = 'Hyd'
-              
-                #print('FE of ' + str(t1) + ' is ' + str(FEs[i][ii]) + ' at ' + str(round(float(Currents[i][ii]), 3)) + 'A/' +str(Potentials[i][ii]) + 'V           min: ' + str(TIMEs[i][ii]))
-               
-            partFE_fig.savefig('Results/FE/' + str(Names[i]) + '.png')        
+                    t1 = 'Hydrogen'
+                
+                Tab_values.append([ t1, Potentials[i][ii], Currents[i][ii], TIMEs[i][ii], FEs[i][ii]])
+                partFE_fig.savefig('Results/FE/' + str(Names[i]) + '.png')        
     fullFE_ax.set_ylim([0,max(FEmax)*1.10])
     fullFE_ax.set_xlabel('Potential vs Ag/AgCl [V]')
     fullFE_ax.set_ylabel('Faradaic efficiency [%]')
     fullFE_ax.legend(fontsize = 'small')
     fullFE_ax.set_title('All faradaic efficiencies')
     fullFE_fig.savefig('Results/FE/All FE´s.png')
-    
-    
 
+
+    
+"""Display results in a table form in .txt and .xlsx file"""
+if dGCA != {}:  
+    
+    print(tabulate(Tab_values, headers=Tab_headers))
+
+    with open('Results/Result Table.txt', 'w') as fi:
+        fi.write(tabulate(Tab_values, headers=Tab_headers))
+    
+    workbook = xlsxwriter.Workbook('Results/Results.xlsx')
+    worksheet = workbook.add_worksheet('Faradaic efficiences')
+    
+    for i in range(len(Tab_headers)):
+        worksheet.write(0, i, Tab_headers[i])    
+    
+    for i in range(len(Tab_values)):
+        for ii in range(len(Tab_values[i])):
+            worksheet.write(i + 2, ii, Tab_values[i][ii])
+            
+    workbook.close()
