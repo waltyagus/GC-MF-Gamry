@@ -552,7 +552,7 @@ if dGCA != {}:
                 
     
                 
-    Tab_headers = ['Product', 'Pot. [V]', 'Curr. [I]', 'After [min]', 'FE [%]']
+    Tab_headers = ['Product', 'Potential [V]', 'Current [A]', 'After [min]', 'Partial current [mA]', 'FE [%]']
     Tab_values = []
     
     "Plots the final FE/U graphs, also labels the datapoints for time"
@@ -581,7 +581,7 @@ if dGCA != {}:
                 elif i == 3:                    
                     t1 = 'Hydrogen'
                 
-                Tab_values.append([ t1, Potentials[i][ii], Currents[i][ii], TIMEs[i][ii], FEs[i][ii]])
+                Tab_values.append([ t1, Potentials[i][ii], Currents[i][ii], TIMEs[i][ii], round(abs(Currents[i][ii] * 10 * FEs[i][ii]), 1), FEs[i][ii]])
                 partFE_fig.savefig('Results/FE/' + str(Names[i]) + '.png')        
     fullFE_ax.set_ylim([0,max(FEmax)*1.10])
     fullFE_ax.set_xlabel('Potential vs Ag/AgCl [V]')
@@ -602,12 +602,17 @@ if dGCA != {}:
     
     workbook = xlsxwriter.Workbook('Results/Results.xlsx')
     worksheet = workbook.add_worksheet('Faradaic efficiences')
+    title = workbook.add_format({'bold': True, 'font_size' : 14, 'bg_color' : '#DBDBDB'})
+    bold = workbook.add_format({'bold' : True, 'font_size' : 12, 'bg_color' : '#D1FFD9'})
     
     for i in range(len(Tab_headers)):
-        worksheet.write(0, i, Tab_headers[i])    
+        worksheet.write(0, i, Tab_headers[i], title)    
     
     for i in range(len(Tab_values)):
         for ii in range(len(Tab_values[i])):
-            worksheet.write(i + 2, ii, Tab_values[i][ii])
+            if ii in [0,5]:
+                worksheet.write(i + 2, ii, Tab_values[i][ii], bold)
+            else:
+                worksheet.write(i + 2, ii, Tab_values[i][ii])
             
     workbook.close()
